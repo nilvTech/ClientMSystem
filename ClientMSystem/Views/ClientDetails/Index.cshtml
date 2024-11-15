@@ -1,0 +1,60 @@
+﻿@model IEnumerable<ClientMSystem.Models.ClientDetail> // Show List  data on view
+@{
+    ViewData["Title"] = "Index";
+}
+
+<div class="container">
+        <div class="col-10 offset-1">
+            <!--Divide screen into 8 col-->
+            <h1 class="text-center text-primary">
+                Client Project Record
+            </h1>&nbsp;
+
+        @if (Model != null)
+        {
+            <table class="table table-bordered">
+                <tr class="text-center">
+                    <th>ID</th>
+                    <th>User ID</th>
+                    <th>Name</th>
+                    <th>Client Name</th>
+                    <th>Issue Date</th>
+                    <th>Domain</th>
+                    <th>Technology</th>
+                    <th>Assigned To</th>
+                    <th>Action</th>
+                </tr>
+                @foreach (var d in Model)
+                {
+                    <tr class="text-center">
+                        <td>@d.Id</td>
+                        <td>@d.UserId</td>
+                        <td>@d.Name</td>
+                        <td>@d.ClientName</td>
+                        <td>@d.IssuedDate</td>
+                        <td>@d.DomainName</td>
+                        <td>@d.Technology</td>
+                        <td>@d.Assigned</td>
+                        <td>
+                          @*  @if (User.IsInRole("Admin"))
+                            {*@
+                              
+                                    <a class="btn btn-sm btn-warning" asp-controller="ClientDetails" asp-action="Edit" asp-route-id="@d.Id">Edit Sheet</a>
+                                
+                                    <a class="btn btn-sm btn-danger" asp-controller="ClientDetails" asp-action="Delete" asp-route-id="@d.Id">Delete Sheet</a>
+                        </td>
+                    </tr>
+                   
+                }
+            </table>
+        }
+            <a class="btn btn-sm btn-success m-4" asp-controller="ClientDetails" asp-action="Create">Add New Client</a>
+            <p class="text-center text-success">@TempData["error"]</p>
+        
+         </div>
+</div>
+        
+
+
+
+

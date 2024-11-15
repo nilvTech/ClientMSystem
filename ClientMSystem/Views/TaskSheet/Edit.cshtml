@@ -1,0 +1,63 @@
+﻿@model ClientMSystem.Models.TimeSheet
+@{
+    ViewData["Title"] = "Edit";
+}
+<div class="container">
+    <div class="row">
+        <div class="col-6 offset-3">
+            <div class="card">
+                <div class="card-header">
+                    <h1 class="text-center text-primary">Edit Client Record</h1>
+                </div>
+                <div class="card-body">
+                    <form method="post" asp-action="Edit">
+                        <div class="form-group">
+                            <label asp-for="Id"></label>
+                            <input type="text" asp-for="Id" class="form-control" placeholder="Enter  Id" />
+                        </div>
+                        <div class="form-group">
+                            <label class="fw-bold" asp-for="Module">Module</label>
+                            <input type="text" asp-for="Module" class="form-control" placeholder="Enter Module" required />
+                        </div>
+
+                        <div class="form-group">
+                            <label class="fw-bold" asp-for="ExpectedTaskToCompleted">Expected Task To Completed</label>
+                            <textarea input type="text" asp-for="ExpectedTaskToCompleted" class="form-control" placeholder="Enter Expected Task To Be Completed" required ></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="fw-bold" asp-for="ExpectedHours">Expected Hours</label>
+                            <input type="text" asp-for="ExpectedHours" class="form-control" placeholder="Enter Expected Hours" required  />
+                        </div>
+
+                        <div class="form-group">
+                            <label class="fw-bold" asp-for="CompletedTasks">Completed Task</label>
+                            <textarea input type="text" asp-for="CompletedTasks" class="form-control" placeholder="Enter Completed Task" required ></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="fw-bold" asp-for="UnPlannedTask">UnPlanned Task</label>
+                            <input type="text" asp-for="UnPlannedTask" class="form-control" placeholder="Enter Unplaned Task"  />
+                        </div>
+                        <div class="form-group">
+                            <label class="fw-bold" asp-for="ActualHours">Actual Hours</label>
+                            <input type="text" asp-for="ActualHours" class="form-control" placeholder="Enter Actual Hours"  />
+                        </div>
+                        <div class="form-group">
+                            <label class="fw-bold" asp-for="CommentsForAnyDealy">Comments For Any Dealy</label>
+                            <input type="text" asp-for="CommentsForAnyDealy" class="form-control" placeholder="Enter Comments"  />
+                        </div>
+                        <div class="form-group">
+                            <label class="fw-bold" asp-for="QuestionsActionsToBeAsked">Questions Actions To Be Asked</label>
+                            <input type="text" asp-for="QuestionsActionsToBeAsked" class="form-control" placeholder="Any Questions"  />
+                        </div>
+                        <div class="form-group">
+                            <input type="submit" value="Submit" class="btn btn-sm btn-outline-success m-4 float-lg-end" />
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

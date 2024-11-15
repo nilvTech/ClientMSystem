@@ -1,0 +1,59 @@
+﻿@model ClientMSystem.Models.ClientDetail
+@{
+    ViewData["Title"] = "Create";
+}
+<div class="container">
+    <div class="row" >
+        <div class="col-8 offset-2">
+                <div class="text-center">
+                    <h1 class="text-center text-primary">Client Records</h1>
+                </div>
+                <div class="card-body align-content-lg-start bg-warning ">
+                    <form method="post" asp-action="Create">
+                        <div class="form-group">
+                            <label class="fw-bold">ID</label>
+                            <input type="text "  asp-for="Id" class="form-control" placeholder="Enter Your Id And Name" required autocomplete="off" />
+                        </div>
+
+                        <div class="form-group">
+                            <label class="fw-bold" for="date" asp-for="UserId">User Id</label>
+                            <input type="text" id="date" name="date" asp-for="UserId" class="form-control" placeholder="User Id" required autocomplete="off" />
+                        </div>
+
+                        <div class="form-group">
+                            <label class="fw-bold" asp-for="Name">Name</label>
+                            <input type="text" asp-for="Name" class="form-control" placeholder="Enter Name" required autocomplete="off" />
+                        </div>
+
+                        <div class="form-group">
+                            <label class="fw-bold" asp-for="ClientName">Client Name</label>
+                            <textarea input type="text" asp-for="ClientName" class="form-control" placeholder="Client Name" required autocomplete="off"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="fw-bold" asp-for="IssuedDate">Issue Date</label>
+                            <input type="date" asp-for="IssuedDate" class="form-control" placeholder="DD/MM/YY" required autocomplete="off" />
+                        </div>
+
+                        <div class="form-group">
+                            <label class="fw-bold" asp-for="DomainName">Domain Name</label>
+                            <textarea input type="text" asp-for="DomainName" class="form-control" placeholder="Domain Name" required autocomplete="off"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="fw-bold" asp-for="Technology">Technology</label>
+                            <input type="text" asp-for="Technology" class="form-control" placeholder="Enter Unplaned Task" autocomplete="off" />
+                        </div>
+                        <div class="form-group">
+                            <label class="fw-bold" asp-for="Assigned">Assigned</label>
+                            <input type="text" asp-for="Assigned" class="form-control" placeholder="Enter Actual Hours" autocomplete="off" />
+                        </div>
+                        <div class="form-group">
+                            <input type="submit" value="Submit" class="btn btn-sm btn-outline-success m-4 float-lg-end" />
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    

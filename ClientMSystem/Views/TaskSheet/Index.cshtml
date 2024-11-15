@@ -1,0 +1,57 @@
+﻿@model IEnumerable<ClientMSystem.Models.TimeSheet> // Show List  data on view
+@{
+    ViewData["Title"] = "Index";
+}
+
+<div class="container">
+        <div class="col-12">
+            <!--Divide screen into 8 col-->
+            <h1 class="text-center text-primary">
+                Client Project Record
+            </h1>&nbsp;
+
+        @if (Model != null)
+        {
+            <table class="table table-bordered">
+                <tr class="text-center">
+                    <th>ID</th>
+                    <th>Date</th>
+                    <th>Module</th>
+                    <th>Expected Task To Completed</th>
+                    <th>Expected Hours</th>
+                    <th>Completed Tasks</th>
+                    <th>UnPlanned Task</th>
+                    <th>Actual Hours</th>
+                    <th>Comments For Any Dealy</th>
+                    <th>Questions Actions To Be Asked</th>
+                    <th>Action</th>
+                </tr>
+                @foreach (var d in Model)
+                {
+                    <tr class="text-center">
+                        <td>@d.Id</td>
+                        <td>@d.Date</td>
+                        <td>@d.Module</td>
+                        <td>@d.ExpectedTaskToCompleted</td>
+                        <td>@d.ExpectedHours</td>
+                        <td>@d.CompletedTasks</td>
+                        <td>@d.UnPlannedTask</td>
+                        <td>@d.ActualHours</td>
+                        <td>@d.CommentsForAnyDealy</td>
+                        <td>@d.QuestionsActionsToBeAsked</td>
+                        <td>
+                            <a class="btn btn-sm btn-warning" asp-controller="TaskSheet" asp-action="Edit" asp-route-id="@d.Id">Edit Sheet</a>
+                                   
+                            <a class="btn btn-sm btn-danger" asp-controller="TaskSheet" asp-action="Delete" asp-route-id="@d.Id">Delete Sheet</a>
+                                
+                        </td>
+                    </tr>
+                }
+            </table>
+        }
+            <a class="btn btn-sm btn-success m-4" asp-controller="TaskSheet" asp-action="Create">Add new Update</a>
+            <p class="text-center text-success">@TempData["error"]</p>
+
+        </div>
+    </div>
+

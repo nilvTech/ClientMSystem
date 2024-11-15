@@ -1,0 +1,49 @@
+﻿@{
+    ViewData["Title"] = "Index";
+}
+
+
+<div class="container">
+    <div class="row mt-lg-5">
+        <div class="col-6 offset-3 border border-primary rounded p-lg-3 pb-5 mt-2">
+            <div class="card-header">
+                <h1 class="text-center text-primary">Employee Leave Request Form</h1>
+            </div>
+
+             @Html.Raw(ViewBag.msg)
+
+            <form method="post" asp-action="SendEmail">
+                <div class="login-form-icon form-outline mb-4">
+                    <i class="fas fa-user-circle fa-9x text-secondary"></i>
+                    <span class="text-danger">@TempData["Errormessage"]</span>
+                </div>
+                <div class="form-group">
+                    <span class="form-control-static"> To: </span>
+                    <input class="form-control" placeholder="Enter Email Id" type="email" name="To" />
+                    <span class="text-danger">@TempData["Errormessage"]</span>
+                </div>
+
+                <div class="form-group">
+                    <span class="form-control-static"> Subject: </span>
+                    <input class="form-control" placeholder="Enter Subject" type="text" name="Subject" />
+                    <span class="text-danger">@TempData["Errormessage"]</span>
+                </div>
+
+                <div class="form-group">
+                    <span class="form-control-static"> Body: </span>
+                    <textarea input class="form-control" type="text" name="Body"></textarea>
+                    <span class="text-danger">@TempData["Errormessage"]</span>
+                </div>
+                <br>
+
+                <div class="form-group">
+                    <input class="form-control" type="file" id="myFile" name="Attachments">
+                </div>
+
+                <div class="form-group">
+                    <input type="submit" value="Send" class="btn btn-sm btn-outline-success m-4 float-lg-end" />
+                </div>&nbsp;
+            </form>
+        </div>
+    </div>
+</div>

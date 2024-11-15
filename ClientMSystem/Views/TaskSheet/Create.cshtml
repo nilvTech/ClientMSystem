@@ -1,0 +1,75 @@
+﻿@model ClientMSystem.Models.TimeSheet
+@{
+    ViewData["Title"] = "Create";
+}
+<div class="container">
+    <div class="row" >
+        <div class="col-6 offset-3 border border-primary rounded p-lg-3 pb-5 mt-2">
+                <div class="card-header">
+                    <h1 class="text-center text-primary">Add Todays Update</h1>
+                </div>
+                <div class="card-body align-content-lg-start">
+                    <form method="post" asp-action="Create">
+                        <div class="form-group">
+                            <label class="fw-bold">ID And Name</label>
+                            <input type="text "  asp-for="Id" class="form-control" placeholder="Enter Your Id And Name" required autocomplete="off" />
+                        </div>
+
+                        <div class="form-group">
+                            <label class="fw-bold" for="date" asp-for="Date">Enter Todays Date</label>
+                            <input type="date" id="date" name="date" asp-for="Date" class="form-control" placeholder="MM/DD/YYY" required autocomplete="off" />
+                        </div>
+
+                        <div class="form-group">
+                            <label class="fw-bold" asp-for="Module">Module</label>
+                            <input type="text" asp-for="Module" class="form-control" placeholder="Enter Module" required autocomplete="off" />
+                        </div>
+
+                        <div class="form-group">
+                            <label class="fw-bold" asp-for="ExpectedTaskToCompleted">Expected Task To Completed</label>
+                            <textarea input type="text:$(this).val($(this).val().trim()" asp-for="ExpectedTaskToCompleted" class="form-control" placeholder="Enter Expected Task To Be Completed" required autocomplete="off"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="fw-bold" asp-for="ExpectedHours">Expected Hours</label>
+                            <input type="text" asp-for="ExpectedHours" class="form-control" placeholder="Enter Expected Hours" required autocomplete="off" />
+                        </div>
+
+                        <div class="form-group">
+                            <label class="fw-bold" asp-for="CompletedTasks">Completed Task</label>
+                            <textarea asp-for="CompletedTasks" class="form-control" placeholder="Enter Completed Task" required autocomplete="off"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="fw-bold" asp-for="UnPlannedTask">UnPlanned Task</label>
+                            <input type="text" asp-for="UnPlannedTask" class="form-control" placeholder="Enter Unplaned Task" autocomplete="off" />
+                        </div>
+                        <div class="form-group">
+                            <label class="fw-bold" asp-for="ActualHours">Actual Hours</label>
+                            <input type="text" asp-for="ActualHours" class="form-control" placeholder="Enter Actual Hours" autocomplete="off" />
+                        </div>
+                        <div class="form-group">
+                            <label class="fw-bold" asp-for="CommentsForAnyDealy">Comments For Any Dealy</label>
+                            <input type="text" asp-for="CommentsForAnyDealy" class="form-control" placeholder="Enter Comments" autocomplete="off" />
+                        </div>
+                        <div class="form-group">
+                            <label class="fw-bold" asp-for="QuestionsActionsToBeAsked">Questions Actions To Be Asked</label>
+                            <input type="text" asp-for="QuestionsActionsToBeAsked" class="form-control" placeholder="Any Questions" autocomplete="off" />
+                        </div>
+                       
+                    <div class="form-group">
+                        <input type="submit" value="Submit" class="btn btn-sm btn-outline-success m-4 float-lg-end" />
+
+                        <br>
+
+                        <div>
+                            <a class="btn btn-sm btn-warning" asp-controller="PDF" asp-action="Index">Create PDF</a>
+                           @* <a class="btn btn-sm btn-warning" asp-controller="TaskSheet" asp-action="CreatePDF">Create PDF</a>
+                 *@       </div>
+                       
+                    </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>

@@ -1,0 +1,75 @@
+﻿@model ClientMSystem.Models.SignUp
+@{
+    ViewData["Title"] = "SignUp";
+    Layout = null;
+}
+<link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+<link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/ClientMSystem.styles.css" asp-append-version="true" />
+<div class="container">
+    <div class="row">
+        <div class="col-6 offset-3 border border-primary rounded p-lg-3 pb-5 mt-2">
+
+                <div class="text-center">
+                    <h1 class="text-center text-primary">User Registration Form</h1>
+                </div>
+                <h3 class="text-danger text-center">@TempData["errorMessage"]</h3>
+                <div class="card-body">
+                    <form method="post" asp-action="SignUp">
+                        <div class="form-group">
+                            <label> Id</label>
+                            <input type="text " asp-for="ID" class="form-control" placeholder="Enter  Id" required autocomplete="off" />
+                            <span asp-validation-for="ID" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label asp-for="FirstName">First Name</label>
+                            <input type="text" asp-for="FirstName" class="form-control" placeholder="Enter First Name" required autocomplete="off" />
+                            <span asp-validation-for="FirstName" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label asp-for="LastName">Last Name</label>
+                            <input type="text" asp-for="LastName" class="form-control" placeholder="Enter Last Name" required autocomplete="off" />
+                            <span asp-validation-for="LastName" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label asp-for="Email">Email</label>
+                            <input type="email" asp-for="Email" class="form-control" placeholder="Enter Email " required autocomplete="off" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label asp-for="Mobile">Mobile</label>
+                            <input type="number" asp-for="Mobile" class="form-control" placeholder="Enter Mobile No" required autocomplete="off" />
+                            <span asp-validation-for="Mobile" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label asp-for="Username">User Name</label>
+                            <input type="text" asp-for="Username" class="form-control" placeholder="Enter User Name" required autocomplete="off" />
+                            <span asp-validation-for="Username" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label asp-for="Password">Password</label>
+                            <input type="password" asp-for="Password" class="form-control" placeholder="Enter Password" autocomplete="off" />
+                            <span asp-validation-for="Password" class="text-danger"></span>
+                        </div>
+                        <div class="form-group">
+                            <label asp-for="ConformPassword">Confirm Password</label>
+                            <input type="password" asp-for="ConformPassword" class="form-control" placeholder="Enter Conform Passwpord" autocomplete="off" />
+                            <span asp-validation-for="ConformPassword" class="text-danger"></span>
+                        </div>
+                        <div class="form-group">
+                            <input type="submit" value="Registration" class="btn btn-sm btn-outline-success m-4 float-lg-end" />
+                        </div>
+                         <div class="form-group">
+                            <a type="submit" value="Login" class="btn btn-sm btn-outline-success m-4 float-lg-end" asp-action="Login" asp-controller="Account">Login</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>

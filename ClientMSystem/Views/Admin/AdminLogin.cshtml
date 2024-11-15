@@ -1,0 +1,53 @@
+﻿@model ClientMSystem.Models.AdminModel
+@{
+    ViewData["Title"] = "AdminLogin";
+    Layout = null;
+}
+
+
+
+<link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+<link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/ClientMSystem.styles.css" asp-append-version="true" />
+
+
+<div class="container">
+    <div class="row mt-lg-5">
+        <div class="col-6 offset-3 border border-primary rounded p-lg-3 pb-5 mt-2">
+            <div class="card-header">
+                <h1 class="text-center text-primary">Admin Login</h1>
+            </div>
+
+            @Html.Raw(ViewBag.msg)
+
+            <div class="card-body">
+
+                <form method="post" asp-action="AdminLogin">
+                    <div class="login-form-icon form-outline mb-4">
+                        <i class="fas fa-user-circle fa-9x text-secondary"></i>
+                    </div>
+
+                    <div class="form-group">
+                        <label>User Name</label>
+                        <input type="text " asp-for="Username" class="form-control" placeholder="Enter User Name" required autocomplete="off" />
+                        <span class="text-danger">@TempData["Errormessage"]</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label asp-for="Password">Password</label>
+                        <input type="password" asp-for="Password" class="form-control" placeholder="Enter Password" required autocomplete="off" />
+                        <span class="text-danger">@TempData["Errormessage"]</span>
+                    </div>
+                    <div class="form-group">
+                        <input type="submit" value="LogIn" class="btn btn-sm btn-outline-success m-4 float-lg-end" />
+                    </div>&nbsp;
+
+                </form>
+                <div class="text-center">
+                    <a class="text-primary" asp-action="ForgotUserName">Forgot User Name ? </a>
+                    <a class="text-primary" asp-action="ForgotPassword">Forgot Password</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
