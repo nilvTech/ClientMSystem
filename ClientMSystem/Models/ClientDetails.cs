@@ -26,5 +26,33 @@ namespace ClientMSystem.Models
         [MaxLength(100)]
         public string Assigned { get; set; }
 
+        [Required]
+        [MaxLength(200)]
+        public string ProjectTitle { get; set; }  
+
+        [MaxLength(500)]
+        public string Description { get; set; }  
+        [Required]
+        public DateTime StartDate { get; set; }  
+
+        public DateTime? EndDate { get; set; }  
+
+        [Required]
+        public decimal Budget { get; set; }     
+
+        [MaxLength(50)]
+        public string Status { get; set; }      
+
+        [Required]
+        [MaxLength(100)]
+        public string ProjectManager { get; set; }
+
+        [Required]
+        [MaxLength(200)]
+        public string TeamMembers { get; set; } 
+
+        [MaxLength(200)]
+        public string ClientFeedback { get; set; }
+
     }
 }
