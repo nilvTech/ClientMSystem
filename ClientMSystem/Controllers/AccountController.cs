@@ -29,101 +29,118 @@ namespace ClientMSystem.Controllers
         }
 
         [HttpPost]
-        public IActionResult Login(SignUp model)
+    public IActionResult Login(SignUp model)
+    {
+        try
         {
-            // var userId = HttpContext.Session.GetInt32("UserId");
-            var data = context.signUps.FirstOrDefault(e => e.Username == model.Username);
-
-            if (data != null)
+            var user = context.signUps.FirstOrDefault(e => e.Username == model.Username);
+            if (user == null)
             {
-                bool isValid = (data.Username == model.Username && data.Password == model.Password);
-                if (isValid)
-                {
-                    var identity = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, model.Username) },
-                        CookieAuthenticationDefaults.AuthenticationScheme);
-
-                    var principal = new ClaimsPrincipal(identity);
-                    HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
-                    HttpContext.Session.SetInt32("UserId", data.ID); // store imp info in session
-
-                    return RedirectToAction("Index", "Home");
-                }
-                else
-                {
-                    ViewBag.msg = "<div class='alert alert-danger alert-dismissible fade show' role='alert'> Invalid Email Or Password!! <button type=\"button\" class=\"close\" data-dismiss=\"alert\" aria-label=\"Close\">\r\n    <span aria-hidden=\"true\">&times;</span>\r\n  </button>\r\n</div>";
-                    TempData["Errormessage"] = "Check Credentials";
-                    return View(model);
-                }
-            }
-            else
-            {
-                TempData["Errormessage"] = "UserName Not found";
+                TempData["ErrorMessage"] = "Username not found.";
                 return View(model);
             }
-        }
 
-        public IActionResult LogOut()
-        {
-            
-            HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-
-            var StoredCookies = Request.Cookies.Keys; // After Logout Delete the all cookies.
-            foreach(var cookie in StoredCookies)
+            bool isValidPassword = BCrypt.Net.BCrypt.Verify(model.Password, user.Password);
+            if (!isValidPassword)
             {
-                Response.Cookies.Delete(cookie);
-            }
-            return RedirectToAction("Login", "Account");
-        }
-
-        //*****************************************************************************SignUp****************************************
-        [AcceptVerbs("Post", "Get")]
-        public IActionResult UserNameIsExits(string Uname)
-        {
-            var data = context.signUps.SingleOrDefault(e => e.Username == Uname);
-
-            if (data != null)
-            {
-                return Json($"Username {Uname} already exists");
-            }
-            else
-            {
-                return Json(true);
-            }
-        }
-
-
-        public IActionResult SignUp()
-        {
-            return View();
-        }
-        [HttpPost]
-        public IActionResult SignUp(SignUp model)
-        {
-            if (ModelState.IsValid)
-            {
-                var data = new SignUp
-                {
-                    FirstName = model.FirstName,
-                    LastName = model.LastName,
-                    Username = model.Username,
-                    Email = model.Email,
-                    Mobile = model.Mobile,
-                    Password = model.Password,
-                    ConformPassword = model.ConformPassword
-                };
-
-                context.signUps.Add(data);
-                context.SaveChanges();
-                TempData["SuccessMessage"] = "User Registration Successfully!! Please Login!";
-                return RedirectToAction("Login");
-            }
-            else
-            {
-                TempData["errorMessage"] = "Fill in all the fields.";
+                TempData["ErrorMessage"] = "Invalid email or password!";
                 return View(model);
             }
+
+            // Create Authentication Cookie
+            var identity = new ClaimsIdentity(new[]
+            {
+                new Claim(ClaimTypes.Name, user.Username),
+                new Claim("UserId", user.ID.ToString())
+            }, CookieAuthenticationDefaults.AuthenticationScheme);
+
+            var principal = new ClaimsPrincipal(identity);
+            HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+
+            // Store user ID in session
+            HttpContext.Session.SetInt32("UserId", user.ID);
+
+            return RedirectToAction("Index", "Home");
+        }
+        catch (Exception ex)
+        {
+            TempData["ErrorMessage"] = "An error occurred during login.";
+            return View(model);
+        }
+    }
+
+    // ********************************* LOGOUT *********************************
+    public IActionResult LogOut()
+    {
+        HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+        // Delete all cookies after logout
+        foreach (var cookie in Request.Cookies.Keys)
+        {
+            Response.Cookies.Delete(cookie);
         }
 
+        return RedirectToAction("Login", "Account");
+    }
+
+    // ********************************* CHECK IF USERNAME EXISTS *********************************
+    [AcceptVerbs("Post", "Get")]
+    public IActionResult UserNameIsExists(string Uname)
+    {
+        bool exists = context.signUps.Any(e => e.Username == Uname);
+        return exists ? Json($"Username '{Uname}' already exists") : Json(true);
+    }
+
+    // ********************************* SIGNUP *********************************
+    public IActionResult SignUp()
+    {
+        return View();
+    }
+
+    [HttpPost]
+    public IActionResult SignUp(SignUp model)
+    {
+        if (!ModelState.IsValid)
+        {
+            TempData["ErrorMessage"] = "Please fill in all required fields.";
+            return View(model);
+        }
+
+        try
+        {
+            // Check if username or email already exists
+            if (context.signUps.Any(e => e.Username == model.Username || e.Email == model.Email))
+            {
+                TempData["ErrorMessage"] = "Username or email already exists.";
+                return View(model);
+            }
+
+            // Hash the password before saving
+            string hashedPassword = BCrypt.Net.BCrypt.HashPassword(model.Password);
+
+            var newUser = new SignUp
+            {
+                FirstName = model.FirstName,
+                LastName = model.LastName,
+                Username = model.Username,
+                Email = model.Email,
+                Mobile = model.Mobile,
+                Password = hashedPassword, // Store the hashed password
+                ConformPassword = hashedPassword // Store the hashed password
+            };
+
+            context.signUps.Add(newUser);
+            context.SaveChanges();
+
+            TempData["SuccessMessage"] = "Registration successful! Please log in.";
+            return RedirectToAction("Login");
+        }
+        catch (Exception ex)
+        {
+            TempData["ErrorMessage"] = "An error occurred during registration.";
+            return View(model);
+        }
+   
     }
 }
 
