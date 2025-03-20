@@ -39,34 +39,25 @@ namespace ClientMSystem.Controllers
             return View();
         }
 
-        [HttpPost]
-        public IActionResult Create(ClientDetail model)
-        {
-            var userId = HttpContext.Session.GetInt32("UserId");
+       [HttpPost]
+public IActionResult Create(ClientDetail model)
+{
+    var userId = HttpContext.Session.GetInt32("UserId");
+    
+    if (!ModelState.IsValid || !userId.HasValue)
+    {
+        TempData["Error"] = "Enter All Details";
+        return View(model);
+    }
 
-            if (ModelState.IsValid && userId.HasValue)
-            {
-                var rec = new ClientDetail()
-                {
-                    UserId = userId.Value,
-                    Name = model.Name,
-                    ClientName = model.ClientName,
-                    IssuedDate = model.IssuedDate,
-                    DomainName = model.DomainName,
-                    Technology = model.Technology,
-                    Assigned = model.Assigned,
-                };
-                context.clientDetails.Add(rec);
-                context.SaveChanges();
-                TempData["Message"] = "Sheet Updated Successfully";
-                return RedirectToAction("Index");
-            }
-            else
-            {
-                TempData["Error"] = "Enter All Details";
-                return View(model);
-            }
-        }
+    model.UserId = userId.Value;
+    context.clientDetails.Add(model);
+    context.SaveChanges();
+
+    TempData["Message"] = "Sheet Updated Successfully";
+    return RedirectToAction("Index");
+}
+
 
         public IActionResult Delete(int id)
         {
