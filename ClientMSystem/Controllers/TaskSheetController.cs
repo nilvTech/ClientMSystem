@@ -1,146 +1,148 @@
-﻿using ClientMSystem.Data;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using ClientMSystem.Data;
 using ClientMSystem.Models;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using IronPdf;
 
 namespace ClientMSystem.Controllers
 {
     public class TaskSheetController : Controller
     {
-        private readonly ApplicationContext context;
+        private readonly ApplicationContext _context;
+        private readonly ILogger<TaskSheetController> _logger;
 
-        public TaskSheetController(ApplicationContext context)
+        public TaskSheetController(ApplicationContext context, ILogger<TaskSheetController> logger)
         {
-            this.context = context;
+            _context = context;
+            _logger = logger;
         }
-        public IActionResult Index()
+
+        public async Task<IActionResult> Index()
         {
             var userId = HttpContext.Session.GetInt32("UserId");
 
-            if (userId == null)
+            if (!userId.HasValue)
             {
                 return View();
             }
-            else
-            {
-                var result = context.timeSheets.ToList(); // to show thw details on view
-                return View(result);
-            }
 
-            
+            var result = await _context.TimeSheets.AsNoTracking().ToListAsync();
+            return View(result);
         }
 
-        //Create
         [HttpGet]
         public IActionResult Create()
         {
             return View();
         }
-       [HttpPost]
-public IActionResult Create(TimeSheet model)
-{
-    var userId = HttpContext.Session.GetInt32("UserId");
-    
-    if (!ModelState.IsValid || !userId.HasValue)
-    {
-        TempData["Error"] = "Enter all details.";
-        return View(model);
-    }
 
-    try
-    {
-        model.UserId = userId.Value;  // Assign UserId directly to the model
-        context.timeSheets.Add(model);
-        context.SaveChanges();
-
-        TempData["Success"] = "Sheet updated successfully.";
-        return RedirectToAction("Index");
-    }
-    catch (Exception ex)
-    {
-        _logger.LogError(ex, "An error occurred while saving the timesheet.");
-        TempData["Error"] = "An unexpected error occurred. Please try again.";
-        return View(model);
-    }
-}
-
-
-
-        public IActionResult Delete(int id)
+        [HttpPost]
+        public async Task<IActionResult> Create(TimeSheet model)
         {
-            var rec = context.timeSheets.SingleOrDefault(e => e.Id == id);
+            var userId = HttpContext.Session.GetInt32("UserId");
+
+            if (!ModelState.IsValid || !userId.HasValue)
+            {
+                TempData["Error"] = "Enter all details.";
+                return View(model);
+            }
+
+            try
+            {
+                model.UserId = userId.Value;
+                _context.TimeSheets.Add(model);
+                await _context.SaveChangesAsync();
+
+                TempData["Success"] = "Sheet created successfully.";
+                return RedirectToAction("Index");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while saving the timesheet.");
+                TempData["Error"] = "An unexpected error occurred. Please try again.";
+                return View(model);
+            }
+        }
+
+        public async Task<IActionResult> Delete(int id)
+        {
+            var rec = await _context.TimeSheets.FindAsync(id);
 
             if (rec != null)
             {
-                context.timeSheets.Remove(rec);
-                context.SaveChanges();
-                TempData["Success"] = "Record deleted successfully"; // Changed TempData key from "Error" to "Success"
+                _context.TimeSheets.Remove(rec);
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "Record deleted successfully";
             }
             else
             {
-                TempData["Error"] = "Record not found"; // Added a message for when the record isn't found
+                TempData["Error"] = "Record not found";
             }
 
             return RedirectToAction("Index");
         }
 
-
-        public IActionResult Edit(int id)
+        public async Task<IActionResult> Edit(int id)
         {
-            var model = context.timeSheets.SingleOrDefault(e => e.Id == id);
-            var result = new TimeSheet()
+            var model = await _context.TimeSheets.FindAsync(id);
+            if (model == null)
             {
-               
-                Date = model.Date,
-                Module = model.Module,
-                ExpectedTaskToCompleted = model.ExpectedTaskToCompleted,
-                ExpectedHours = model.ExpectedHours,
-                CompletedTasks = model.CompletedTasks,
-                UnPlannedTask = model.UnPlannedTask,
-                ActualHours = model.ActualHours,
-                CommentsForAnyDealy = model.CommentsForAnyDealy,
-                QuestionsActionsToBeAsked = model.QuestionsActionsToBeAsked,
-
-            };
-            return View(result);
-        }
-        [HttpPost]
-        public IActionResult Edit(TimeSheet model)
-        {
-            if (ModelState.IsValid)
-            {
-                var existingRec = context.timeSheets.SingleOrDefault(e => e.Id == model.Id);
-
-                if (existingRec != null)
-                {
-                    existingRec.Date = model.Date;
-                    existingRec.Module = model.Module;
-                    existingRec.ExpectedTaskToCompleted = model.ExpectedTaskToCompleted;
-                    existingRec.ExpectedHours = model.ExpectedHours;
-                    existingRec.CompletedTasks = model.CompletedTasks;
-                    existingRec.UnPlannedTask = model.UnPlannedTask;
-                    existingRec.ActualHours = model.ActualHours;
-                    existingRec.CommentsForAnyDealy = model.CommentsForAnyDealy;
-                    existingRec.QuestionsActionsToBeAsked = model.QuestionsActionsToBeAsked;
-
-                    context.timeSheets.Update(existingRec);
-                    context.SaveChanges();
-                    TempData["Success"] = "Sheet updated successfully"; // Changed TempData key from "Error" to "Success"
-                }
-                else
-                {
-                    TempData["Error"] = "Record not found";
-                }
-
-                return RedirectToAction("Index");
+                return NotFound();
             }
-            else
+            return View(model);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Edit(TimeSheet model)
+        {
+            if (!ModelState.IsValid)
             {
                 TempData["Error"] = "Please provide valid data";
                 return View(model);
             }
+
+            var existingRec = await _context.TimeSheets.FindAsync(model.Id);
+            if (existingRec != null)
+            {
+                _context.Entry(existingRec).CurrentValues.SetValues(model);
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "Sheet updated successfully";
+            }
+            else
+            {
+                TempData["Error"] = "Record not found";
+            }
+
+            return RedirectToAction("Index");
         }
 
+        public async Task<IActionResult> GeneratePdf(int id)
+        {
+            try
+            {
+                var report = await _context.TimeSheets.FindAsync(id);
+                if (report == null)
+                {
+                    return NotFound();
+                }
 
+                var renderer = new HtmlToPdf();
+                var pdf = renderer.RenderHtmlAsPdf($"<h1>{report.Module}</h1><p>{report.CommentsForAnyDealy}</p>");
+                var pdfBytes = pdf.BinaryData;
+
+                return File(pdfBytes, "application/pdf", $"TaskSheet_{id}.pdf");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating PDF.");
+                return StatusCode(500, "Internal Server Error");
+            }
+        }
     }
 }
