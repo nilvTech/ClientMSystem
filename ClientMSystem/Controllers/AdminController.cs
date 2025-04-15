@@ -1,111 +1,67 @@
-﻿//using ClientMSystem.Models;
-//using Microsoft.AspNetCore.Authentication.Cookies;
-//using Microsoft.AspNetCore.Authentication;
-//using Microsoft.AspNetCore.Http;
-//using Microsoft.AspNetCore.Mvc;
-//using System.Security.Claims;
-//using ClientMSystem.Data;
-//using Microsoft.AspNetCore.Authorization;
+using ClientMSystem.Data;
+using ClientMSystem.Models;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 
-//namespace ClientMSystem.Controllers
-//{
-    
-//    public class AdminController : Controller
-//    {
-//        private readonly ApplicationContext context;
+namespace ClientMSystem.Controllers
+{
+    public class AdminController : Controller
+    {
+        private readonly ApplicationContext _context;
 
-//        public AdminController(ApplicationContext context)
-//        {
-//            this.context = context;
-//        }
+        public AdminController(ApplicationContext context)
+        {
+            _context = context ?? throw new ArgumentNullException(nameof(context));
+        }
 
-//        public IActionResult Login()
-//        {
-//            return View();
-//        }
+        [HttpGet]
+        public IActionResult Login()
+        {
+            return View();
+        }
 
-//        [HttpPost]
-//        //[Authorize(Roles = "Admin")]
-//        public IActionResult Login(AdminModel model)
-//        {
-//            if (ModelState.IsValid)
-//            {
-//                var adData = context.adminModel.FirstOrDefault(a => a.Username == model.Username && a.Password == model.Password);
-//                if (adData != null)
-//                {
-//                    var identity = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, model.Username) },
-//                         CookieAuthenticationDefaults.AuthenticationScheme);
+        [HttpPost]
+        public async Task<IActionResult> Login(AdminModel model)
+        {
+            if (!ModelState.IsValid)
+                return View(model);
 
-//                    var principal = new ClaimsPrincipal(identity);
-//                    HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
-//                    //HttpContext.Session["UserName"] = adData.Username; // store imp info in session
+            var admin = await _context.adminModel
+                .FirstOrDefaultAsync(a => a.Username == model.Username && a.Password == model.Password); // ⚠️ Plain text check (not safe)
 
+            if (admin != null)
+            {
+                var claims = new List<Claim>
+                {
+                    new Claim(ClaimTypes.Name, admin.Username),
+                    new Claim(ClaimTypes.Role, "Admin")
+                };
 
-//                    return RedirectToAction("Index", "Home");
-//                }
-//                else
-//                {
-//                    ViewBag.msg = "<div class='alert alert-danger alert-dismissible fade show' role='alert'> Invalid Email Or Password!! <button type=\"button\" class=\"close\" data-dismiss=\"alert\" aria-label=\"Close\">\r\n    <span aria-hidden=\"true\">&times;</span>\r\n  </button>\r\n</div>";
-//                    return View(model);
-//                }
-//            }
-//            return View();
-//        }
+                var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                var principal = new ClaimsPrincipal(identity);
 
+                await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
 
+                // Optional: store in session
+                HttpContext.Session.SetString("AdminUsername", admin.Username);
 
-//    }
+                return RedirectToAction("Index", "Home");
+            }
 
+            TempData["ErrorMessage"] = "Invalid username or password.";
+            return View(model);
+        }
 
-//}
+        [HttpGet]
+        public async Task<IActionResult> Logout()
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            HttpContext.Session.Clear();
 
-//// GET: AdminController
-////[Authorize(Roles = "Admin")]
-////public ActionResult Index()
-////{
-////    return View();
-////}
-
-////[HttpPost]
-////public IActionResult Index(AdminModel model)
-////{
-////    try
-////    {
-////        var data = context.adminModel.FirstOrDefault(a => a.Username == model.Username);
-
-////        if (data != null)
-////        {
-////            bool isValid = (data.Username == model.Username && data.Password == model.Password);
-////            if (isValid)
-////            {
-////                var identity = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, model.Username) },
-////                CookieAuthenticationDefaults.AuthenticationScheme);
-
-////                var principal = new ClaimsPrincipal(identity);
-////                HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
-////               /* HttpContext.Session.SetInt32("UserId", data.ID);*/ // store imp info in session
-
-////                return RedirectToAction("Index", "Home");
-////            }
-////            else
-////            {
-
-////                TempData["Errormessage"] = "Check Credentials";
-////                return View(model);
-
-////            }
-////        }
-////        else
-////        {
-////            TempData["Errormessage"] = "UserName Not found";
-////            return View(model);
-
-////        }
-
-////    }
-////    catch (Exception ex)
-////    {
-////        throw ex;
-////    }
-
-////}
+            return RedirectToAction("Login", "Admin");
+        }
+    }
+}
