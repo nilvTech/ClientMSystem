@@ -29,37 +29,23 @@ namespace ClientMSystem.Controllers
             if (!ModelState.IsValid)
                 return View(model);
 
-            try
-            {
-                var user = await _context.signUps.FirstOrDefaultAsync(e => e.Username == model.Username);
-                if (user == null || !BCrypt.Net.BCrypt.Verify(model.Password, user.Password))
-                {
-                    TempData["ErrorMessage"] = "Invalid username or password.";
-                    return View(model);
-                }
+            var user = await _context.signUps
+                .AsNoTracking()
+                .FirstOrDefaultAsync(e => e.Username == model.Username);
 
-                var claims = new[] { new Claim(ClaimTypes.Name, user.Username), new Claim("UserId", user.ID.ToString()) };
-                var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                var principal = new ClaimsPrincipal(identity);
-                await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
-                HttpContext.Session.SetInt32("UserId", user.ID);
-
-                return RedirectToAction("Index", "Home");
-            }
-            catch (Exception ex)
+            if (user == null || !BCrypt.Net.BCrypt.Verify(model.Password, user.Password))
             {
-                _logger.LogError(ex, "Login error");
-                TempData["ErrorMessage"] = "An error occurred during login.";
+                ModelState.AddModelError("", "Invalid username or password.");
                 return View(model);
             }
+
+            await SignInUser(user.Username, user.ID);
+            return RedirectToAction("Index", "Home");
         }
 
         public async Task<IActionResult> LogOut()
         {
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            foreach (var cookie in Request.Cookies.Keys)
-                Response.Cookies.Delete(cookie);
-
+            await SignOutUser();
             return RedirectToAction("Login", "Account");
         }
 
@@ -76,34 +62,43 @@ namespace ClientMSystem.Controllers
         public async Task<IActionResult> SignUp(SignUp model)
         {
             if (!ModelState.IsValid)
+                return View(model);
+
+            if (await _context.signUps.AnyAsync(e => e.Username == model.Username || e.Email == model.Email))
             {
-                TempData["ErrorMessage"] = "Please fill in all required fields.";
+                ModelState.AddModelError("", "Username or email already exists.");
                 return View(model);
             }
 
-            try
-            {
-                if (await _context.signUps.AnyAsync(e => e.Username == model.Username || e.Email == model.Email))
-                {
-                    TempData["ErrorMessage"] = "Username or email already exists.";
-                    return View(model);
-                }
+            string hashedPassword = BCrypt.Net.BCrypt.HashPassword(model.Password);
+            model.Password = hashedPassword;
+            model.ConformPassword = hashedPassword;
 
-                string hashedPassword = BCrypt.Net.BCrypt.HashPassword(model.Password);
-                model.Password = hashedPassword;
-                model.ConformPassword = hashedPassword;
-                _context.signUps.Add(model);
-                await _context.SaveChangesAsync();
+            _context.signUps.Add(model);
+            await _context.SaveChangesAsync();
 
-                TempData["SuccessMessage"] = "Registration successful! Please log in.";
-                return RedirectToAction("Login");
-            }
-            catch (Exception ex)
+            TempData["SuccessMessage"] = "Registration successful! Please log in.";
+            return RedirectToAction("Login");
+        }
+
+        private async Task SignInUser(string username, int userId)
+        {
+            var claims = new[]
             {
-                _logger.LogError(ex, "Signup error");
-                TempData["ErrorMessage"] = "An error occurred during registration.";
-                return View(model);
-            }
+                new Claim(ClaimTypes.Name, username),
+                new Claim("UserId", userId.ToString())
+            };
+
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+            HttpContext.Session.SetInt32("UserId", userId);
+        }
+
+        private async Task SignOutUser()
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            foreach (var cookie in Request.Cookies.Keys)
+                Response.Cookies.Delete(cookie);
         }
     }
 
@@ -126,38 +121,39 @@ namespace ClientMSystem.Controllers
             if (!ModelState.IsValid)
                 return View(model);
 
-            try
-            {
-                var admin = await _context.adminModel.FirstOrDefaultAsync(a => a.Username == model.Username && a.Password == model.Password);
-                if (admin == null)
-                {
-                    ViewBag.msg = "<div class='alert alert-danger'>Invalid Email Or Password!</div>";
-                    return View(model);
-                }
+            var admin = await _context.adminModel
+                .AsNoTracking()
+                .FirstOrDefaultAsync(a => a.Username == model.Username);
 
-                var claims = new[] { new Claim(ClaimTypes.Name, model.Username) };
-                var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                var principal = new ClaimsPrincipal(identity);
-                await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
-                HttpContext.Session.SetInt32("UserId", admin.Id);
-
-                return RedirectToAction("Index", "Home");
-            }
-            catch (Exception ex)
+            if (admin == null || !BCrypt.Net.BCrypt.Verify(model.Password, admin.Password))
             {
-                _logger.LogError(ex, "Admin login error");
-                ViewBag.msg = "<div class='alert alert-danger'>An error occurred.</div>";
+                ModelState.AddModelError("", "Invalid username or password.");
                 return View(model);
             }
+
+            await SignInAdmin(admin.Username, admin.Id);
+            return RedirectToAction("Index", "Home");
         }
 
         public async Task<IActionResult> LogOut()
         {
+            await SignOutAdmin();
+            return RedirectToAction("AdminLogin", "Admin");
+        }
+
+        private async Task SignInAdmin(string username, int adminId)
+        {
+            var claims = new[] { new Claim(ClaimTypes.Name, username) };
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+            HttpContext.Session.SetInt32("UserId", adminId);
+        }
+
+        private async Task SignOutAdmin()
+        {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             foreach (var cookie in Request.Cookies.Keys)
                 Response.Cookies.Delete(cookie);
-
-            return RedirectToAction("Login", "Account");
         }
     }
 }
