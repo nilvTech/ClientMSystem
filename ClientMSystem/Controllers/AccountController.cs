@@ -1,17 +1,48 @@
 using ClientMSystem.Data;
-using ClientMSystem.Models;
+using ClientMSystem.Models; // Consider splitting into Entities and ViewModels
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System;
 using System.Security.Claims;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ClientMSystem.Controllers
 {
+    // ---- ViewModels (keep these separate from your EF entities) ----
+    public sealed class LoginVm
+    {
+        public string Username { get; set; } = "";
+        public string Password { get; set; } = "";
+        public bool RememberMe { get; set; }
+        public string? ReturnUrl { get; set; }
+    }
+
+    public sealed class SignUpVm
+    {
+        public string Username { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Password { get; set; } = "";
+        public string ConfirmPassword { get; set; } = "";
+    }
+
+    public sealed class AdminLoginVm
+    {
+        public string Username { get; set; } = "";
+        public string Password { get; set; } = "";
+        public bool RememberMe { get; set; }
+        public string? ReturnUrl { get; set; }
+    }
+
+    [Authorize]
     public class AccountController : Controller
     {
+        private const string AuthScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+
         private readonly ApplicationContext _context;
         private readonly ILogger<AccountController> _logger;
 
@@ -21,89 +52,147 @@ namespace ClientMSystem.Controllers
             _logger = logger;
         }
 
-        public IActionResult Login() => View();
+        [AllowAnonymous]
+        [HttpGet]
+        public IActionResult Login(string? returnUrl = null) =>
+            View(new LoginVm { ReturnUrl = returnUrl });
 
+        [AllowAnonymous]
         [HttpPost]
-        public async Task<IActionResult> Login(SignUp model)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Login(LoginVm model, CancellationToken ct)
         {
             if (!ModelState.IsValid)
                 return View(model);
+
+            var username = (model.Username ?? string.Empty).Trim();
+            var normalized = username.ToLowerInvariant();
 
             var user = await _context.signUps
                 .AsNoTracking()
-                .FirstOrDefaultAsync(e => e.Username == model.Username);
+                .SingleOrDefaultAsync(e => e.Username.ToLower() == normalized, ct);
 
-            if (user == null || !BCrypt.Net.BCrypt.Verify(model.Password, user.Password))
+            if (user == null || !BCrypt.Net.BCrypt.Verify(model.Password ?? string.Empty, user.Password))
             {
-                ModelState.AddModelError("", "Invalid username or password.");
+                _logger.LogWarning("Failed login for username: {Username}", username);
+                ModelState.AddModelError(string.Empty, "Invalid username or password.");
                 return View(model);
             }
 
-            await SignInUser(user.Username, user.ID);
+            await SignInAsync(
+                subjectId: user.ID.ToString(),
+                username: user.Username,
+                role: "User",
+                rememberMe: model.RememberMe);
+
+            if (!string.IsNullOrWhiteSpace(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
+                return LocalRedirect(model.ReturnUrl);
+
             return RedirectToAction("Index", "Home");
         }
 
-        public async Task<IActionResult> LogOut()
-        {
-            await SignOutUser();
-            return RedirectToAction("Login", "Account");
-        }
+        [AllowAnonymous]
+        [HttpGet]
+        public IActionResult SignUp() => View(new SignUpVm());
 
-        [AcceptVerbs("Post", "Get")]
-        public async Task<IActionResult> UserNameIsExists(string Uname)
-        {
-            bool exists = await _context.signUps.AnyAsync(e => e.Username == Uname);
-            return exists ? Json($"Username '{Uname}' already exists") : Json(true);
-        }
-
-        public IActionResult SignUp() => View();
-
+        [AllowAnonymous]
         [HttpPost]
-        public async Task<IActionResult> SignUp(SignUp model)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SignUp(SignUpVm model, CancellationToken ct)
         {
             if (!ModelState.IsValid)
                 return View(model);
 
-            if (await _context.signUps.AnyAsync(e => e.Username == model.Username || e.Email == model.Email))
+            // Basic confirm check (add password policy validation server-side too)
+            if (!string.Equals(model.Password, model.ConfirmPassword, StringComparison.Ordinal))
             {
-                ModelState.AddModelError("", "Username or email already exists.");
+                ModelState.AddModelError(nameof(model.ConfirmPassword), "Passwords do not match.");
                 return View(model);
             }
 
-            string hashedPassword = BCrypt.Net.BCrypt.HashPassword(model.Password);
-            model.Password = hashedPassword;
-            model.ConformPassword = hashedPassword;
+            var username = (model.Username ?? string.Empty).Trim();
+            var email = (model.Email ?? string.Empty).Trim();
 
-            _context.signUps.Add(model);
-            await _context.SaveChangesAsync();
+            var normalizedUsername = username.ToLowerInvariant();
+            var normalizedEmail = email.ToLowerInvariant();
+
+            var exists = await _context.signUps.AsNoTracking().AnyAsync(
+                e => e.Username.ToLower() == normalizedUsername || e.Email.ToLower() == normalizedEmail, ct);
+
+            if (exists)
+            {
+                ModelState.AddModelError(string.Empty, "Username or email already exists.");
+                return View(model);
+            }
+
+            var hashedPassword = BCrypt.Net.BCrypt.HashPassword(model.Password);
+
+            // Map to your entity
+            var entity = new SignUp
+            {
+                Username = username,
+                Email = email,
+                Password = hashedPassword,
+                // DO NOT store ConfirmPassword
+            };
+
+            await _context.signUps.AddAsync(entity, ct);
+            await _context.SaveChangesAsync(ct);
 
             TempData["SuccessMessage"] = "Registration successful! Please log in.";
-            return RedirectToAction("Login");
+            return RedirectToAction(nameof(Login));
         }
 
-        private async Task SignInUser(string username, int userId)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> LogOut()
+        {
+            await HttpContext.SignOutAsync(AuthScheme);
+            // Do NOT delete all cookies; you may remove only your auth/session cookie if needed.
+            // Response.Cookies.Delete(".AspNetCore.Cookies"); // optional if you need to force-delete
+            return RedirectToAction(nameof(Login), "Account");
+        }
+
+        // Remote validator endpoint for username existence
+        [AllowAnonymous]
+        [AcceptVerbs("GET")]
+        public async Task<IActionResult> UsernameExists(string uname, CancellationToken ct)
+        {
+            var normalized = (uname ?? string.Empty).Trim().ToLowerInvariant();
+            bool exists = await _context.signUps.AsNoTracking().AnyAsync(e => e.Username.ToLower() == normalized, ct);
+            // jQuery Validate expects "true" for OK (i.e., valid), or a string message for error
+            return exists ? Json($"Username '{uname}' is already taken.") : Json(true);
+        }
+
+        // ---- Helpers ----
+        private async Task SignInAsync(string subjectId, string username, string role, bool rememberMe)
         {
             var claims = new[]
             {
+                new Claim(ClaimTypes.NameIdentifier, subjectId),
                 new Claim(ClaimTypes.Name, username),
-                new Claim("UserId", userId.ToString())
+                new Claim(ClaimTypes.Role, role)
             };
 
-            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
-            HttpContext.Session.SetInt32("UserId", userId);
-        }
+            var identity = new ClaimsIdentity(claims, AuthScheme);
+            var principal = new ClaimsPrincipal(identity);
 
-        private async Task SignOutUser()
-        {
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            foreach (var cookie in Request.Cookies.Keys)
-                Response.Cookies.Delete(cookie);
+            var props = new AuthenticationProperties
+            {
+                IsPersistent = rememberMe,
+                AllowRefresh = true,
+                ExpiresUtc = rememberMe ? DateTimeOffset.UtcNow.AddDays(7) : DateTimeOffset.UtcNow.AddHours(2)
+            };
+
+            await HttpContext.SignInAsync(AuthScheme, principal, props);
         }
     }
 
+    [Authorize(Roles = "Admin")]
     public class AdminController : Controller
     {
+        private const string AuthScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+
         private readonly ApplicationContext _context;
         private readonly ILogger<AdminController> _logger;
 
@@ -113,47 +202,69 @@ namespace ClientMSystem.Controllers
             _logger = logger;
         }
 
-        public IActionResult AdminLogin() => View();
+        [AllowAnonymous]
+        [HttpGet]
+        public IActionResult AdminLogin(string? returnUrl = null) =>
+            View(new AdminLoginVm { ReturnUrl = returnUrl });
 
+        [AllowAnonymous]
         [HttpPost]
-        public async Task<IActionResult> AdminLogin(AdminModel model)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AdminLogin(AdminLoginVm model, CancellationToken ct)
         {
             if (!ModelState.IsValid)
                 return View(model);
 
+            var username = (model.Username ?? string.Empty).Trim();
+            var normalized = username.ToLowerInvariant();
+
             var admin = await _context.adminModel
                 .AsNoTracking()
-                .FirstOrDefaultAsync(a => a.Username == model.Username);
+                .SingleOrDefaultAsync(a => a.Username.ToLower() == normalized, ct);
 
-            if (admin == null || !BCrypt.Net.BCrypt.Verify(model.Password, admin.Password))
+            if (admin == null || !BCrypt.Net.BCrypt.Verify(model.Password ?? string.Empty, admin.Password))
             {
-                ModelState.AddModelError("", "Invalid username or password.");
+                _logger.LogWarning("Failed admin login for username: {Username}", username);
+                ModelState.AddModelError(string.Empty, "Invalid username or password.");
                 return View(model);
             }
 
-            await SignInAdmin(admin.Username, admin.Id);
+            await SignInAdminAsync(admin.Id.ToString(), admin.Username, model.RememberMe);
+
+            if (!string.IsNullOrWhiteSpace(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
+                return LocalRedirect(model.ReturnUrl);
+
             return RedirectToAction("Index", "Home");
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> LogOut()
         {
-            await SignOutAdmin();
-            return RedirectToAction("AdminLogin", "Admin");
+            await HttpContext.SignOutAsync(AuthScheme);
+            return RedirectToAction(nameof(AdminLogin));
         }
 
-        private async Task SignInAdmin(string username, int adminId)
+        private async Task SignInAdminAsync(string subjectId, string username, bool rememberMe)
         {
-            var claims = new[] { new Claim(ClaimTypes.Name, username) };
-            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
-            HttpContext.Session.SetInt32("UserId", adminId);
-        }
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, subjectId),
+                new Claim(ClaimTypes.Name, username),
+                new Claim(ClaimTypes.Role, "Admin")
+            };
 
-        private async Task SignOutAdmin()
-        {
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            foreach (var cookie in Request.Cookies.Keys)
-                Response.Cookies.Delete(cookie);
+            var identity = new ClaimsIdentity(claims, AuthScheme);
+            var principal = new ClaimsPrincipal(identity);
+
+            var props = new AuthenticationProperties
+            {
+                IsPersistent = rememberMe,
+                AllowRefresh = true,
+                ExpiresUtc = rememberMe ? DateTimeOffset.UtcNow.AddDays(7) : DateTimeOffset.UtcNow.AddHours(2)
+            };
+
+            await HttpContext.SignInAsync(AuthScheme, principal, props);
         }
     }
 }
